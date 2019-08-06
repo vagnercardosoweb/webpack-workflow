@@ -1,19 +1,20 @@
-# Webpack workflow
+# Webpack Workflow + ReactJS
 
 Para utilizar esse workflow basta **clonar o repositório** e rodar os comandos.
 
 ```bash
 # Para desenvolvimento
-yarn assets:dev
-# npm run assets:dev
+yarn dev
+# npm run dev
 
 # Para produção
-yarn assets:build
-# npm run assets:build
+yarn build
+# npm run build
 ```
 
 ## Bibliotecas já instaladas
 
+- [React](https://pt-br.reactjs.org/)
 - [jQuery v3.4.1](https://jquery.com/)
 - [Bootstrap v4.3.1](https://getbootstrap.com/)
 - [FontAwesome v5.9.0](https://fontawesome.com/)
@@ -24,7 +25,7 @@ Os arquivos para desenvolvimento fica dentro da pasta `resources` contendo os se
 
 - `resources/images` local responsável para armazenar as **imagens `(.png, .jpe?g, .gif)`**.
 - `resources/js` local responsável para codificar os seus **`.js` e em `resources/app.js` deve ser importados**..
-- `resources/scss` local responsável para codificar seus **`.s[ac]ss` e em `resources/app.scss` deve ser importados**.
+- `resources/sass` local responsável para codificar seus **`.s[ac]ss` e em `resources/app.scss` deve ser importados**.
 - `resources/svg` local responsável para armazenar seus **`.svg`**.
 
 ## Diretório compilado
