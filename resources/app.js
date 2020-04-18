@@ -1,20 +1,8 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-
-import 'jquery';
-import 'popper.js';
+import 'babel-polyfill';
+import jQuery from 'jquery';
 import 'bootstrap';
-import './app.scss';
+import './styles/app.scss';
 
-export default function App() {
-  return (
-    <div
-      className="d-flex justify-content-center align-items-center"
-      style={{ height: '100vh' }}
-    >
-      <h1 className="text-center">Workflow webpack + ReactJS</h1>
-    </div>
-  );
+if (typeof window !== 'undefined') {
+  window.$ = global.$ = jQuery;
 }
-
-ReactDOM.render(<App />, document.querySelector('[data-react]'));
