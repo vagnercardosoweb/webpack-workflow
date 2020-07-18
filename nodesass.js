@@ -7,7 +7,7 @@ const DIRECTORY_INITIAL = path.resolve(
   __dirname,
   'resources',
   'assets',
-  'nodesass'
+  'nodesass',
 );
 
 const getRecursiveSassFile = async (dir, tree = [], name) => {
@@ -37,7 +37,7 @@ const getRecursiveSassFile = async (dir, tree = [], name) => {
 (async function main() {
   const files = await getRecursiveSassFile(DIRECTORY_INITIAL);
 
-  files.forEach((file) => {
+  files.map(file => {
     const compiled = path.resolve(__dirname, 'public', 'assets', file.name);
 
     sass.render(
@@ -46,13 +46,15 @@ const getRecursiveSassFile = async (dir, tree = [], name) => {
         outputStyle: 'compressed',
       },
       async (err, result) => {
-        if (err) throw err;
+        if (err) {
+          throw err;
+        }
 
         if (result.css.toString()) {
           await fs.mkdir(path.dirname(compiled), { recursive: true });
           await fs.writeFile(compiled, result.css);
         }
-      }
+      },
     );
   });
 })();

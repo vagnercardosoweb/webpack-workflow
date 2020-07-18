@@ -1,36 +1,68 @@
 const path = require('path');
 
 const webpack = require('webpack');
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+const TerserWebPackPlugin = require('terser-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const DEV_TOOL = NODE_ENV === 'development' ? 'source-map' : false;
 const ASSETS_PATH = path.join(__dirname, 'resources');
 
-const publicFolder = path.resolve(__dirname, 'public');
-const compileReactComponent = require('./resources/react');
+const publicFolder = path.resolve(__dirname, 'public_html');
+const compileReactComponent = require(path.resolve(
+  ASSETS_PATH,
+  'frameworks/react/index.ts',
+));
 
 const outputFilename = ({
   chunk: {
     name,
-    entryModule: { id },
+    entryModule: { _identifier },
   },
 }) => {
-  if (id && typeof id === 'string' && id.match(/\/react\//g)) {
+  if (
+    typeof _identifier === 'string' &&
+    _identifier.match(/\/resources\/.+\/react\//g)
+  ) {
     return `assets/react/${name}.js`;
   }
 
-  return 'assets/[name].js';
+  return 'assets/[name]/bundle.js';
 };
+
+const plugins = [
+  new VueLoaderPlugin(),
+  new webpack.ProgressPlugin(),
+  new MiniCssExtractPlugin({
+    filename: 'assets/[name]/bundle.css',
+    chunkFilename: 'assets/[name]/bundle.css',
+  }),
+  new webpack.ProvidePlugin({
+    $: 'jquery',
+    jQuery: 'jquery',
+    'global.$': 'jquery',
+    'window.$': 'jquery',
+    'global.jQuery': 'jquery',
+    'window.jQuery': 'jquery',
+  }),
+];
+
+if (NODE_ENV === 'production') {
+  plugins.push(
+    new CleanWebpackPlugin({
+      cleanOnceBeforeBuildPatterns: ['static/*'],
+    }),
+  );
+}
 
 module.exports = {
   mode: NODE_ENV,
   devtool: DEV_TOOL,
   entry: {
-    app: path.resolve(ASSETS_PATH, 'app.js'),
+    app: path.resolve(ASSETS_PATH, 'app', 'index.ts'),
     ...compileReactComponent,
   },
   output: {
@@ -40,34 +72,22 @@ module.exports = {
   },
   devServer: {
     hot: true,
-    contentBase: publicFolder,
-    watchContentBase: true,
-    progress: true,
-    compress: true,
     port: 9000,
+    compress: true,
+    progress: true,
+    contentBase: publicFolder,
+    writeToDisk: true,
+    watchContentBase: true,
+    historyApiFallback: true,
   },
   optimization: {
+    minimize: true,
     minimizer: [
-      new UglifyJsPlugin({ cache: true, parallel: true }),
+      new TerserWebPackPlugin({ sourceMap: false, extractComments: false }),
       new OptimizeCssAssetsPlugin({}),
     ],
   },
-  plugins: [
-    new VueLoaderPlugin(),
-    new webpack.ProgressPlugin(),
-    new MiniCssExtractPlugin({
-      filename: 'assets/[name].css',
-      chunkFilename: 'assets/[name].css',
-    }),
-    new webpack.ProvidePlugin({
-      $: 'jquery',
-      jQuery: 'jquery',
-      'global.$': 'jquery',
-      'window.$': 'jquery',
-      'global.jQuery': 'jquery',
-      'window.jQuery': 'jquery',
-    }),
-  ],
+  plugins,
   module: {
     rules: [
       {
@@ -108,12 +128,12 @@ module.exports = {
           name: 'static/fonts/[name]-[hash:8].[ext]',
         },
       },
-      {
-        enforce: 'pre',
-        test: /\.m?jsx?$/,
-        exclude: /(node_modules|bower_components)/,
-        use: 'eslint-loader',
-      },
+      // {
+      //   enforce: 'pre',
+      //   test: /\.m?jsx?$/,
+      //   exclude: /(node_modules|bower_components)/,
+      //   use: 'eslint-loader',
+      // },
       {
         test: /\.m?jsx?$/,
         exclude: /(node_modules|bower_components)/,
@@ -125,6 +145,11 @@ module.exports = {
         },
       },
       {
+        test: /\.tsx?$/,
+        use: 'ts-loader',
+        exclude: /node_modules/,
+      },
+      {
         test: /\.vue$/,
         exclude: /(node_modules|bower_components)/,
         use: 'vue-loader',
@@ -132,7 +157,16 @@ module.exports = {
     ],
   },
   resolve: {
-    extensions: ['.js', '.jsx', '.ts', '.vue', '.css', '.scss', '.sass'],
+    extensions: [
+      '.ts',
+      '.tsx',
+      '.js',
+      '.jsx',
+      '.vue',
+      '.css',
+      '.scss',
+      '.sass',
+    ],
     alias: { vue: 'vue/dist/vue.esm.js' },
   },
 };
