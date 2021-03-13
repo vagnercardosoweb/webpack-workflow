@@ -3,38 +3,27 @@ const path = require('path');
 const webpack = require('webpack');
 const TerserWebPackPlugin = require('terser-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const VueLoaderPlugin = require('vue-loader/lib/plugin');
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const DEV_TOOL = NODE_ENV === 'development' ? 'source-map' : false;
-const ASSETS_PATH = path.join(__dirname, 'resources');
+const ASSETS_SRC = path.join(__dirname, 'src');
 
-const publicFolder = path.resolve(__dirname, 'public_html');
-const compileReactComponent = require(path.resolve(
-  ASSETS_PATH,
-  'frameworks/react/index.ts',
-));
+const PUBLIC_FOLDER = path.resolve(__dirname, 'public_html');
+const REACT_COMPONENTS = require('./src/react/index');
 
-const outputFilename = ({
-  chunk: {
-    name,
-    entryModule: { _identifier },
-  },
-}) => {
-  if (
-    typeof _identifier === 'string' &&
-    _identifier.match(/\/resources\/.+\/react\//g)
-  ) {
+const outputFilename = ({ chunk: { name } }) => {
+  if (name in REACT_COMPONENTS) {
     return `assets/react/${name}.js`;
   }
 
   return 'assets/[name]/bundle.js';
 };
 
+let optimization = {};
+
 const plugins = [
-  new VueLoaderPlugin(),
   new webpack.ProgressPlugin(),
   new MiniCssExtractPlugin({
     filename: 'assets/[name]/bundle.css',
@@ -56,17 +45,29 @@ if (NODE_ENV === 'production') {
       cleanOnceBeforeBuildPatterns: ['static/*'],
     }),
   );
+
+  optimization = {
+    ...optimization,
+    minimize: true,
+    minimizer: [
+      new CssMinimizerPlugin(),
+      new TerserWebPackPlugin({
+        parallel: true,
+        extractComments: true,
+      }),
+    ],
+  };
 }
 
 module.exports = {
   mode: NODE_ENV,
   devtool: DEV_TOOL,
   entry: {
-    app: path.resolve(ASSETS_PATH, 'app', 'index.ts'),
-    ...compileReactComponent,
+    app: path.resolve(ASSETS_SRC, 'app', 'index.ts'),
+    ...REACT_COMPONENTS,
   },
   output: {
-    path: publicFolder,
+    path: PUBLIC_FOLDER,
     filename: outputFilename,
     publicPath: '/',
   },
@@ -75,32 +76,31 @@ module.exports = {
     port: 9000,
     compress: true,
     progress: true,
-    contentBase: publicFolder,
+    contentBase: PUBLIC_FOLDER,
     writeToDisk: true,
     watchContentBase: true,
     historyApiFallback: true,
   },
-  optimization: {
-    minimize: true,
-    minimizer: [
-      new TerserWebPackPlugin({ sourceMap: false, extractComments: false }),
-      new OptimizeCssAssetsPlugin({}),
-    ],
-  },
   plugins,
+  optimization,
   module: {
     rules: [
       {
         test: /\.s?[ac]ss$/,
         use: [
           MiniCssExtractPlugin.loader,
+          'css-loader',
+          'sass-loader',
           {
-            loader: 'css-loader',
+            loader: 'postcss-loader',
             options: {
-              importLoaders: 2,
+              postcssOptions: {
+                plugins: function () {
+                  return [require('autoprefixer')];
+                },
+              },
             },
           },
-          'sass-loader',
         ],
       },
       {
@@ -122,18 +122,12 @@ module.exports = {
         },
       },
       {
-        test: /\.(ttf|eot|woff(2)?)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
+        test: /\.(ttf|eot|svg|gif|woff|woff2)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
         loader: 'file-loader',
         options: {
           name: 'static/fonts/[name]-[hash:8].[ext]',
         },
       },
-      // {
-      //   enforce: 'pre',
-      //   test: /\.m?jsx?$/,
-      //   exclude: /(node_modules|bower_components)/,
-      //   use: 'eslint-loader',
-      // },
       {
         test: /\.m?jsx?$/,
         exclude: /(node_modules|bower_components)/,
@@ -147,26 +141,16 @@ module.exports = {
       {
         test: /\.tsx?$/,
         use: 'ts-loader',
-        exclude: /node_modules/,
-      },
-      {
-        test: /\.vue$/,
         exclude: /(node_modules|bower_components)/,
-        use: 'vue-loader',
       },
     ],
   },
+  externals: {
+    react: 'React',
+    'react-dom': 'ReactDOM',
+    jquery: 'jQuery',
+  },
   resolve: {
-    extensions: [
-      '.ts',
-      '.tsx',
-      '.js',
-      '.jsx',
-      '.vue',
-      '.css',
-      '.scss',
-      '.sass',
-    ],
-    alias: { vue: 'vue/dist/vue.esm.js' },
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.css', '.scss', '.sass'],
   },
 };

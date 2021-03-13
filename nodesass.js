@@ -1,14 +1,8 @@
-const fs = require('fs').promises;
+const fs = require('fs/promises');
 const path = require('path');
 const sass = require('node-sass');
 
-// Location where the files are stored
-const DIRECTORY_INITIAL = path.resolve(
-  __dirname,
-  'resources',
-  'assets',
-  'nodesass',
-);
+const DIRECTORY_INITIAL = path.resolve(__dirname, 'src', 'nodesass');
 
 const getRecursiveSassFile = async (dir, tree = [], name) => {
   try {
@@ -38,7 +32,13 @@ const getRecursiveSassFile = async (dir, tree = [], name) => {
   const files = await getRecursiveSassFile(DIRECTORY_INITIAL);
 
   files.map(file => {
-    const compiled = path.resolve(__dirname, 'public', 'assets', file.name);
+    const compiled = path.resolve(
+      __dirname,
+      'public_html',
+      'assets',
+      'others',
+      file.name,
+    );
 
     sass.render(
       {
